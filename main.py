@@ -7,8 +7,9 @@ window = ti.ui.Window("SPH", (1024, 1024), vsync=True)
 canvas = window.get_canvas()
 canvas.set_background_color((1, 1, 1))
 
-num_particles = 1000
 radius = 0.03
+num_particles = 1000
+num_active_particles = 0
 positions = ti.Vector.field(2, dtype=float, shape=num_particles)
 densities = ti.field(dtype=float, shape=num_particles)
 pressures = ti.field(dtype=float, shape=num_particles)
@@ -19,8 +20,9 @@ colors = ti.Vector.field(3, dtype=float, shape=num_particles)
 @ti.kernel
 def initialize():
     for i in ti.grouped(positions):
-        positions[i].x = ti.random(float) * 0.2
-        positions[i].y = ti.random(float) * 2.0 + 0.1
+        positions[i].x = ti.random(float) * 0.1 + 0.1
+        positions[i].y = ti.random(float) * 0.1 + 0.8
+        velocities[i] = [0.02, -0.01]
 
 
 @ti.func
@@ -48,12 +50,12 @@ def spline_kernel_gradient(r, h):
 
 
 @ti.kernel
-def update():
+def update(num_active_particles: int):
     mass = 1.0
-    for i in ti.grouped(positions):
+    for i in range(num_active_particles):
         # Compute density
         density = 0.0
-        for j in range(num_particles):
+        for j in range(num_active_particles):
             density += mass * spline_kernel(positions[i] - positions[j], radius)
         densities[i] = density
 
@@ -61,11 +63,11 @@ def update():
         stiffness = 0.00007
         pressures[i] = max(stiffness * densities[i], 0.0)
 
-    for i in ti.grouped(positions):
+    for i in range(num_active_particles):
         # Compute force
         force = ti.math.vec2(0.0)
         force.y -= 0.98  # gravity
-        for j in range(num_particles):
+        for j in range(num_active_particles):
             pi = pressures[i]
             pj = pressures[j]
             grad = spline_kernel_gradient(positions[i] - positions[j], radius)
@@ -91,6 +93,7 @@ def update():
 
 initialize()
 while window.running:
-    update()
+    num_active_particles = min(num_active_particles + 5, num_particles)
+    update(num_active_particles)
     canvas.circles(positions, radius / 2.0, per_vertex_color=colors)
     window.show()
