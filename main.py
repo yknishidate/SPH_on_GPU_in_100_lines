@@ -19,8 +19,8 @@ colors = ti.Vector.field(3, dtype=float, shape=num_particles)
 @ti.kernel
 def initialize():
     for i in ti.grouped(positions):
-        positions[i].x = ti.random(float) * 0.2 + 0.4
-        positions[i].y = ti.random(float) * 0.8 + 0.1
+        positions[i].x = ti.random(float) * 0.2
+        positions[i].y = ti.random(float) * 2.0 + 0.1
 
 
 @ti.func
@@ -81,9 +81,9 @@ def update():
         if positions[i].x <= 0.0 or 1.0 <= positions[i].x:
             velocities[i].x *= -restitution
             positions[i].x = ti.math.clamp(positions[i].x, 0.01, 0.99)
-        elif positions[i].y <= 0.0 or 1.0 <= positions[i].y:
+        elif positions[i].y <= 0.0:
             velocities[i].y *= -restitution
-            positions[i].y = ti.math.clamp(positions[i].y, 0.01, 0.99)
+            positions[i].y = ti.math.max(positions[i].y, 0.01)
 
         # Compute color
         colors[i].x = pressures[i]
