@@ -13,7 +13,6 @@ positions = ti.Vector.field(2, dtype=float, shape=num_particles)
 densities = ti.field(dtype=float, shape=num_particles)
 pressures = ti.field(dtype=float, shape=num_particles)
 velocities = ti.Vector.field(2, dtype=float, shape=num_particles)
-accelerations = ti.Vector.field(2, dtype=float, shape=num_particles)
 colors = ti.Vector.field(3, dtype=float, shape=num_particles)
 
 
@@ -72,11 +71,9 @@ def update():
             grad = spline_kernel_gradient(positions[i] - positions[j], radius)
             force -= mass / densities[j] * (pi + pj) / 2.0 * grad
 
-        # Compute acceleration
-        accelerations[i] = force / mass
-
-        # Update velocity / position
-        velocities[i] += accelerations[i] * 0.0004  # delta time
+        # Compute acceleration / velocity / position
+        acceleration = force / mass
+        velocities[i] += acceleration * 0.0004  # delta time
         positions[i] += velocities[i]
 
         # Handle collision
